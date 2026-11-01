@@ -1,0 +1,385 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>3.3% 프리랜서 종합소득세 계산기</title>
+<meta name="description" content="업종코드와 부양가족 수만 넣으면 3.3% 원천징수 프리랜서의 종합소득세와 환급액을 계산합니다. 2025년 귀속 국세청 경비율 반영.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="3.3% 프리랜서 종합소득세 계산기">
+<meta property="og:description" content="업종코드·부양가족 수별 종합소득세와 환급액 계산 (2025년 귀속 경비율)">
+<meta property="og:locale" content="ko_KR">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232c5e63'/%3E%3Ctext x='16' y='22' font-size='15' font-family='Arial' font-weight='700' fill='white' text-anchor='middle'%3E%25%3C/text%3E%3C/svg%3E">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: 왼쪽 입력 양식 + 오른쪽 '세액계산서'(신고서 계산 흐름 그대로), 아래 부양가족 수별 비교표와 경비율표 */
+:root{
+  --bg:#eef2f1; --paper:#ffffff; --ink:#1c2a31; --muted:#5a6a70; --line:#d3dcda; --soft:#f5f8f7;
+  --accent:#2c5e63; --accent-soft:#e1eceb; --refund:#1f7a55; --pay:#b23a2e; --warn:#9a6b12; --warn-soft:#fbf1dc;
+  --f-body:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  --f-num:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#11171a; --paper:#182024; --ink:#e3ebe9; --muted:#97a6a4; --line:#2b3739; --soft:#1d272b;
+  --accent:#86bcbd; --accent-soft:#213335; --refund:#5fc79a; --pay:#ef8273; --warn:#e2b45a; --warn-soft:#2e2717; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#11171a; --paper:#182024; --ink:#e3ebe9; --muted:#97a6a4; --line:#2b3739; --soft:#1d272b;
+  --accent:#86bcbd; --accent-soft:#213335; --refund:#5fc79a; --pay:#ef8273; --warn:#e2b45a; --warn-soft:#2e2717; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.55;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:28px 48px}
+.wrap{max-width:1120px;margin:0 auto;display:grid;gap:22px}
+header h1{font-size:clamp(22px,3.2vw,30px);margin:0 0 4px;letter-spacing:-.02em;text-wrap:balance}
+header p{margin:0;color:var(--muted);max-width:68ch}
+.tag{display:inline-block;font-size:12px;font-weight:600;letter-spacing:.04em;color:var(--accent);background:var(--accent-soft);padding:3px 8px;border-radius:4px;margin-bottom:10px}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:22px;align-items:start}
+@media (max-width:860px){.grid{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:20px;min-width:0}
+.panel h2{font-size:15px;margin:0 0 14px;letter-spacing:-.01em;display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+.panel h2 small{font-weight:400;color:var(--muted);font-size:12px}
+fieldset{border:0;margin:0 0 18px;padding:0;display:grid;gap:12px}
+legend{font-size:12px;font-weight:600;letter-spacing:.06em;color:var(--muted);margin-bottom:10px;padding:0}
+label{display:grid;gap:5px;font-size:13.5px;font-weight:500}
+.hint{font-weight:400;color:var(--muted);font-size:12px}
+input[type=text],input[type=number],select{font:inherit;font-size:15px;color:var(--ink);background:var(--soft);border:1px solid var(--line);border-radius:6px;padding:9px 11px;width:100%}
+input.num{font-family:var(--f-num);text-align:right;font-variant-numeric:tabular-nums}
+input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.row3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+@media (max-width:440px){.row3{grid-template-columns:1fr 1fr}}
+.check{display:flex;gap:8px;align-items:center;font-weight:500;font-size:13.5px}
+.check input{width:17px;height:17px;accent-color:var(--accent)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden;width:max-content;max-width:100%}
+.seg button{font:inherit;font-size:13px;background:var(--soft);color:var(--muted);border:0;padding:7px 12px;cursor:pointer}
+.seg button[aria-pressed=true]{background:var(--accent);color:var(--paper);font-weight:600}
+.rates{display:flex;gap:6px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+.rates span{background:var(--soft);border:1px solid var(--line);border-radius:4px;padding:2px 7px;font-family:var(--f-num)}
+/* 결과 */
+.verdict{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.pill{font-size:12.5px;font-weight:600;padding:4px 10px;border-radius:999px;background:var(--accent-soft);color:var(--accent)}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}
+.reason{font-size:12.5px;color:var(--muted);margin:-6px 0 14px}
+.big{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.big div{background:var(--soft);border:1px solid var(--line);border-radius:8px;padding:12px 14px;min-width:0}
+.big .lbl{font-size:12px;color:var(--muted)}
+.big .val{font-family:var(--f-num);font-size:clamp(19px,2.6vw,24px);font-weight:600;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.big .final{grid-column:1/-1;border-width:2px}
+.big .final.refund{border-color:var(--refund)} .big .final.refund .val{color:var(--refund)}
+.big .final.pay{border-color:var(--pay)} .big .final.pay .val{color:var(--pay)}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+.calc td{padding:7px 0;border-bottom:1px dashed var(--line);font-size:13.5px;vertical-align:top}
+.calc td:last-child{text-align:right;font-family:var(--f-num);white-space:nowrap;padding-left:10px}
+.calc tr.sum td{border-bottom:1px solid var(--ink);font-weight:600}
+.calc tr.sub td:first-child{padding-left:14px;color:var(--muted)}
+.calc .op{display:inline-block;width:18px;color:var(--muted);font-family:var(--f-num)}
+.calc .note{display:block;font-size:11.5px;color:var(--muted);font-weight:400}
+.scroll{overflow-x:auto}
+.cmp th,.cmp td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:right;font-size:13px;white-space:nowrap}
+.cmp th{font-size:12px;color:var(--muted);font-weight:600;background:var(--soft)}
+.cmp th:first-child,.cmp td:first-child{text-align:left}
+.cmp td{font-family:var(--f-num)}
+.cmp td:first-child{font-family:var(--f-body)}
+.cmp tr.cur td{background:var(--accent-soft);font-weight:600}
+.pos{color:var(--pay)} .neg{color:var(--refund)}
+.notes{font-size:12.5px;color:var(--muted);margin:0;padding-left:18px;display:grid;gap:4px;max-width:90ch}
+.rt td,.rt th{padding:6px 10px;font-size:12.5px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+.rt th{color:var(--muted);background:var(--soft);font-weight:600}
+.rt td:nth-child(-n+2),.rt th:nth-child(-n+2){text-align:left}
+.rt td{font-family:var(--f-num)} .rt td:nth-child(2){font-family:var(--f-body)}
+.rt tr.cur td{background:var(--accent-soft);font-weight:600}
+details summary{cursor:pointer;font-weight:600;font-size:14px}
+details[open] summary{margin-bottom:12px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <span class="tag">2025년 귀속 · 2026년 5월 신고분 기준</span>
+    <h1>3.3% 프리랜서 종합소득세 계산기</h1>
+    <p>인적용역 사업소득(업종코드 940xxx)만 있는 경우, 장부 없이 경비율로 추계신고할 때의 종합소득세와 지방소득세, 원천징수 3.3% 대비 환급·추가납부액을 계산합니다.</p>
+  </header>
+
+  <div class="grid">
+    <form class="panel" id="f" autocomplete="off">
+      <h2>입력 <small>예시 값이 채워져 있습니다</small></h2>
+
+      <fieldset>
+        <legend>업종 · 수입</legend>
+        <label for="code">업종코드
+          <select id="code"></select>
+        </label>
+        <div class="rates" id="rates"></div>
+
+        <div style="display:grid;gap:6px">
+          <span style="font-size:13.5px;font-weight:500">수입금액 입력 방식</span>
+          <div class="seg" role="group" aria-label="수입금액 입력 방식">
+            <button type="button" id="mGross" aria-pressed="true">세전 지급액</button>
+            <button type="button" id="mNet" aria-pressed="false">실수령액 (3.3% 뗀 후)</button>
+          </div>
+        </div>
+        <label for="rev"><span id="revLabel">2025년 수입금액 (세전 지급총액, 원)</span>
+          <input id="rev" class="num" type="text" inputmode="numeric" value="30,000,000">
+          <span class="hint" id="revHint"></span>
+        </label>
+
+        <label class="check"><input type="checkbox" id="isNew"> 2025년에 처음 사업소득이 생긴 신규사업자</label>
+        <label for="prev" id="prevWrap">2024년 수입금액 (직전연도, 원)
+          <input id="prev" class="num" type="text" inputmode="numeric" value="25,000,000">
+          <span class="hint">단순경비율·장부 의무·무기장가산세 판정에 씁니다</span>
+        </label>
+        <label for="major" id="majorWrap">주요경비 증빙액 (원)
+          <input id="major" class="num" type="text" inputmode="numeric" value="0">
+          <span class="hint">기준경비율 대상일 때만 반영: 세금계산서·카드 등 증빙된 매입비·사업장 임차료·인건비</span>
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>인적공제</legend>
+        <div class="row2">
+          <label class="check" style="align-self:end"><input type="checkbox" id="spouse"> 배우자 공제</label>
+          <label for="deps">부양가족 수 <span class="hint">배우자·본인 제외</span>
+            <input id="deps" class="num" type="number" min="0" max="20" value="1">
+          </label>
+        </div>
+        <div class="row3">
+          <label for="kids">8세 이상 자녀 <span class="hint">자녀세액공제</span>
+            <input id="kids" class="num" type="number" min="0" max="20" value="0">
+          </label>
+          <label for="elder">70세 이상 <span class="hint">경로우대</span>
+            <input id="elder" class="num" type="number" min="0" max="20" value="0">
+          </label>
+          <label for="dis">장애인 <span class="hint">본인 포함</span>
+            <input id="dis" class="num" type="number" min="0" max="20" value="0">
+          </label>
+        </div>
+        <label for="pension">국민연금 본인 납부액 (연간, 원)
+          <input id="pension" class="num" type="text" inputmode="numeric" value="0">
+          <span class="hint">지역가입자로 낸 연금보험료 전액 소득공제</span>
+        </label>
+      </fieldset>
+    </form>
+
+    <section class="panel" aria-live="polite">
+      <h2>세액계산서 <small id="codeName"></small></h2>
+      <div class="verdict" id="verdict"></div>
+      <p class="reason" id="reason"></p>
+      <div class="big">
+        <div><span class="lbl">총 결정세액 (지방소득세 포함)</span><div class="val" id="bTax">-</div></div>
+        <div><span class="lbl">이미 낸 세금 (3.3%)</span><div class="val" id="bPaid">-</div></div>
+        <div class="final" id="bFinalBox"><span class="lbl" id="bFinalLbl">예상 환급액</span><div class="val" id="bFinal">-</div></div>
+      </div>
+      <table class="calc"><tbody id="calc"></tbody></table>
+    </section>
+  </div>
+
+  <section class="panel">
+    <h2>부양가족 수별 비교 <small>배우자·자녀·경로·장애인·연금 입력은 그대로 두고 부양가족 수만 바꿨을 때</small></h2>
+    <div class="scroll">
+      <table class="cmp">
+        <thead><tr><th>부양가족</th><th>기본공제 인원</th><th>인적공제</th><th>과세표준</th><th>적용세율</th><th>결정세액(지방세 포함)</th><th>환급(−)/납부(+)</th></tr></thead>
+        <tbody id="cmp"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel">
+    <details>
+      <summary>인적용역 업종별 경비율표 (국세청고시 제2026-14호, 2025년 귀속)</summary>
+      <div class="scroll">
+        <table class="rt">
+          <thead><tr><th>코드</th><th>업종</th><th>단순 기본율</th><th>단순 초과율</th><th>기준경비율</th><th>수입 3천만 단순경비율 결정세액*</th></tr></thead>
+          <tbody id="rt"></tbody>
+        </table>
+      </div>
+      <p class="hint" style="margin:10px 0 0">* 본인 1인, 다른 공제 없음, 단순경비율 적용 가정. 초과율은 수입금액 4천만원 초과분에만 적용됩니다.</p>
+    </details>
+  </section>
+
+  <section class="panel">
+    <h2>계산 기준과 한계</h2>
+    <ul class="notes">
+      <li>경비율은 국세청고시 제2026-14호(2026.3.30.)의 2025년 귀속 값입니다. 2026년 귀속 경비율은 2027년 3월경 고시되므로, 올해 소득을 미리 추정할 때는 이 값을 근사치로 쓰세요.</li>
+      <li>단순경비율 적용: 인적용역은 직전연도 수입 3,600만원 미만 + 해당연도 수입 7,500만원 미만. 신규사업자는 해당연도 7,500만원 미만이면 적용합니다.</li>
+      <li>장부 의무: 직전연도 수입 7,500만원 이상(신규는 해당연도)이면 복식부기의무자, 미만이면 간편장부대상자. 기준경비율 소득금액은 단순경비율 소득금액의 2.8배(간편)·3.4배(복식)를 넘지 않습니다.</li>
+      <li>무기장가산세 20%: 간편장부대상자 중 직전연도 수입 4,800만원 이상인 계속사업자. 복식부기의무자는 무신고가산세(산출세액 20%와 수입금액 0.07% 중 큰 금액)와 비교해 큰 금액으로 계산했습니다.</li>
+      <li>세율: 6~45% 8단계 누진세율. 세액공제는 표준세액공제 7만원과 자녀세액공제(1명 25만·2명 55만·3명 이상 1명당 40만 추가)만 반영하며, 산출세액을 넘지 않게 처리했습니다.</li>
+      <li>반영하지 않은 것: 장부 기장(실제경비·기장세액공제), 부녀자·한부모 추가공제, 노란우산공제, 연금계좌·기부금 세액공제, 출산·입양 세액공제, 중간예납, 근로·연금 등 다른 소득과의 합산.</li>
+      <li>보험설계사(940906)·음료품배달원(940907)·방문판매원(940908)은 연말정산 대상 사업소득이라, 이 소득만 있으면 연말정산으로 끝나고 5월 신고 대상이 아닐 수 있습니다.</li>
+      <li>원천징수세액은 소득세 3%·지방소득세 0.3%를 10원 미만 절사해 계산했습니다. 실제 신고 전 홈택스 지급명세서 금액으로 확인하세요.</li>
+    </ul>
+  </section>
+</div>
+
+<script>
+// 국세청고시 제2026-14호 (2025년 귀속) 인적용역 경비율: [코드, 업종, 단순 기본율, 단순 초과율, 기준경비율]
+const RATES=[
+ ["940100","작가",58.7,42.2,7.2],["940200","화가 및 관련예술가",68.0,55.2,16.6],["940301","작곡가",49.7,29.6,5.8],
+ ["940302","배우 등",29.0,10.6,5.9],["940303","모델",40.9,17.3,10.0],["940304","가수",13.5,4.2,5.7],
+ ["940305","성악가 등",61.6,46.2,26.6],["940306","1인미디어콘텐츠창작자",64.1,49.7,12.1],["940500","연예보조서비스",70.9,59.3,16.2],
+ ["940600","자문·감독·지도료·고문료",58.4,41.8,7.6],["940901","바둑기사",62.6,47.6,16.9],["940902","꽃꽂이 및 요리교사",81.8,74.5,22.3],
+ ["940903","학원강사·강사·재단사",61.7,46.4,15.4],["940904","직업운동가",54.5,36.3,15.7],["940905","유흥접객원 및 댄서",61.7,46.4,23.5],
+ ["940906","보험설계사",77.6,68.6,28.5],["940907","음료품배달원",80.0,72.0,34.7],["940908","서적 및 화장품외판원",75.0,65.0,19.9],
+ ["940909","기타자영업(컴퓨터프로그래머 등)",64.1,49.7,17.4],["940910","다단계판매원 후원수당",67.8,54.9,14.1],["940911","기타 모집수당·채권회수수당",67.7,54.8,15.8],
+ ["940912","개인간병인",80.2,72.3,34.0],["940913","대리운전기사",73.7,63.2,32.2],["940914","골프장캐디",74.3,64.0,20.9],
+ ["940915","목욕관리사",78.2,69.5,39.7],["940916","행사도우미",69.8,57.7,15.5],["940917","심부름용역원",71.5,60.1,25.6],
+ ["940918","퀵서비스배달원",79.4,71.2,19.8],["940919","이삿짐운반원",74.2,63.9,27.6],["940920","학습지 방문강사",75.0,65.0,31.5],
+ ["940921","교육교구 방문강사",75.6,65.8,28.6],["940922","대여제품 방문점검원",75.0,65.0,29.9],["940923","대출모집인",67.5,54.5,28.6],
+ ["940924","신용카드회원모집인",71.3,59.8,29.2],["940925","방과후강사",69.3,57.0,19.3],["940926","소프트웨어프리랜서",64.4,50.2,20.9],
+ ["940927","관광통역안내사",64.1,49.7,17.0],["940928","어린이통학버스기사",72.4,61.4,19.8],["940929","중고자동차판매원",75.0,65.0,24.2]
+];
+const BR=[[14e6,.06,0],[50e6,.15,1.26e6],[88e6,.24,5.76e6],[150e6,.35,15.44e6],[300e6,.38,19.94e6],[500e6,.40,25.94e6],[1e9,.42,35.94e6],[Infinity,.45,65.94e6]];
+const SIMPLE_PREV=36e6, BOOK_LIMIT=75e6, SMALL=48e6, SPLIT=40e6;
+
+const $=id=>document.getElementById(id);
+const won=n=>Math.round(n).toLocaleString("ko-KR")+"원";
+const parse=v=>{const n=Number(String(v).replace(/[^0-9]/g,""));return isFinite(n)?n:0};
+const intv=id=>Math.max(0,Math.floor(Number($(id).value)||0));
+const floor10=n=>Math.floor(n/10)*10;
+
+function bracket(base){for(const b of BR){if(base<=b[0])return b}return BR[BR.length-1]}
+function simpleIncome(R,r){const exp=Math.min(R,SPLIT)*r[2]/100+Math.max(R-SPLIT,0)*r[3]/100;return {exp:Math.floor(exp),inc:Math.max(0,R-Math.floor(exp))}}
+function childCredit(k){if(k<=0)return 0;if(k===1)return 25e4;if(k===2)return 55e4;return 55e4+(k-2)*40e4}
+
+function calc(p){
+  const r=p.rate, R=p.R;
+  const simpleOK = p.isNew ? R<BOOK_LIMIT : (p.prev<SIMPLE_PREV && R<BOOK_LIMIT);
+  const double = p.isNew ? R>=BOOK_LIMIT : p.prev>=BOOK_LIMIT;
+  const s=simpleIncome(R,r);
+  let method,income,exp,detail={};
+  if(simpleOK){method="단순경비율";income=s.inc;exp=s.exp}
+  else{
+    method="기준경비율";
+    const base=Math.floor(R*r[4]/100);
+    const a=Math.max(0,R-p.major-base);
+    const mult=double?3.4:2.8;
+    const cap=Math.floor(s.inc*mult);
+    income=Math.min(a,cap);exp=R-income;
+    detail={base,a,mult,cap,capped:cap<a};
+  }
+  const persons=1+(p.spouse?1:0)+p.deps;
+  const personal=persons*150e4+p.elder*100e4+p.dis*200e4;
+  const ded=Math.min(income,personal+p.pension);
+  const taxBase=Math.max(0,income-ded);
+  const b=bracket(taxBase);
+  const calcTax=Math.max(0,Math.floor(taxBase*b[1]-b[2]));
+  const ccWant=childCredit(Math.min(p.kids,persons-1));
+  const cc=Math.min(ccWant,calcTax);
+  const std=Math.min(7e4,calcTax-cc);
+  const after=calcTax-cc-std;
+  let penalty=0,penName="";
+  if(double){penalty=Math.floor(Math.max(calcTax*.2,R*.0007));penName="무기장·무신고가산세"}
+  else if(!p.isNew && p.prev>=SMALL){penalty=Math.floor(calcTax*.2);penName="무기장가산세 20%"}
+  const nat=after+penalty;
+  const local=Math.floor(nat*.1);
+  const wNat=floor10(R*.03), wLocal=floor10(wNat*.1);
+  const diff=(nat-wNat)+(local-wLocal);
+  return {simpleOK,double,method,income,exp,detail,persons,personal,ded,taxBase,rate:b[1],calcTax,cc,std,after,penalty,penName,nat,local,wNat,wLocal,diff,total:nat+local,paid:wNat+wLocal,s};
+}
+
+// 입력 서식
+let mode="gross";
+function fmtInput(el){const n=parse(el.value);el.value=n?n.toLocaleString("ko-KR"):"0"}
+["rev","prev","major","pension"].forEach(id=>{
+  const el=$(id);
+  el.addEventListener("input",()=>{const pos=el.value.length-el.selectionStart;fmtInput(el);const np=Math.max(0,el.value.length-pos);try{el.setSelectionRange(np,np)}catch(e){}run()});
+});
+RATES.forEach(r=>{const o=document.createElement("option");o.value=r[0];o.textContent=r[0]+" · "+r[1];$("code").appendChild(o)});
+$("code").value="940909";
+["code","isNew","spouse","deps","kids","elder","dis"].forEach(id=>$(id).addEventListener("input",run));
+function setMode(m){mode=m;$("mGross").setAttribute("aria-pressed",m==="gross");$("mNet").setAttribute("aria-pressed",m==="net");
+  $("revLabel").textContent=m==="gross"?"2025년 수입금액 (세전 지급총액, 원)":"2025년 실제 입금액 합계 (3.3% 공제 후, 원)";run()}
+$("mGross").addEventListener("click",()=>setMode("gross"));$("mNet").addEventListener("click",()=>setMode("net"));
+$("f").addEventListener("submit",e=>e.preventDefault());
+
+function params(over={}){
+  const rate=RATES.find(r=>r[0]===$("code").value);
+  const v=parse($("rev").value);
+  const R=mode==="gross"?v:Math.round(v/0.967);
+  return Object.assign({rate,R,isNew:$("isNew").checked,prev:parse($("prev").value),major:parse($("major").value),
+    spouse:$("spouse").checked,deps:intv("deps"),kids:intv("kids"),elder:intv("elder"),dis:intv("dis"),pension:parse($("pension").value)},over);
+}
+
+function row(label,val,cls="",note=""){return `<tr class="${cls}"><td>${label}${note?`<span class="note">${note}</span>`:""}</td><td>${val}</td></tr>`}
+const op=s=>`<span class="op">${s}</span>`;
+
+function run(){
+  const p=params(), c=calc(p), r=p.rate;
+  $("prevWrap").hidden=p.isNew;
+  $("majorWrap").style.opacity=c.simpleOK?.5:1;
+  $("revHint").textContent=mode==="net"?`세전 지급액 환산: ${won(p.R)}`:"";
+  $("rates").innerHTML=`<span>단순 기본 ${r[2].toFixed(1)}%</span><span>4천만 초과분 ${r[3].toFixed(1)}%</span><span>기준 ${r[4].toFixed(1)}%</span>`;
+  $("codeName").textContent=r[0]+" "+r[1];
+
+  const book=c.double?"복식부기의무자":"간편장부대상자";
+  let pills=`<span class="pill">${c.method}</span><span class="pill">${book}</span>`;
+  if(c.penalty)pills+=`<span class="pill warn">${c.penName}</span>`;
+  $("verdict").innerHTML=pills;
+  let why;
+  if(p.isNew) why=c.simpleOK?"신규사업자이고 2025년 수입이 7,500만원 미만이라 단순경비율을 적용합니다.":"신규사업자지만 2025년 수입이 7,500만원 이상이라 기준경비율을 적용합니다.";
+  else if(p.prev>=SIMPLE_PREV) why=`2024년 수입이 3,600만원 이상이라 기준경비율 대상입니다.${c.detail.capped?" 배율 상한이 적용되었습니다.":""} 장부를 쓰면 실제 경비로 신고할 수 있습니다.`;
+  else if(p.R>=BOOK_LIMIT) why="2025년 수입이 7,500만원 이상이라 단순경비율을 쓸 수 없습니다.";
+  else why="2024년 수입 3,600만원 미만, 2025년 수입 7,500만원 미만이라 단순경비율을 적용합니다.";
+  $("reason").textContent=why;
+
+  $("bTax").textContent=won(c.total);
+  $("bPaid").textContent=won(c.paid);
+  const refund=c.diff<0;
+  $("bFinalBox").className="final "+(refund?"refund":"pay");
+  $("bFinalLbl").textContent=refund?"예상 환급액":"예상 추가납부액";
+  $("bFinal").textContent=won(Math.abs(c.diff));
+
+  let h=row(op("")+"총수입금액",won(p.R));
+  if(c.simpleOK){
+    const a=Math.min(p.R,SPLIT),b=Math.max(p.R-SPLIT,0);
+    h+=row(op("−")+"필요경비 (단순경비율)",won(c.exp),"",`${won(a)} × ${r[2]}%`+(b?` + ${won(b)} × ${r[3]}%`:""));
+  }else{
+    const d=c.detail;
+    h+=row(op("−")+"주요경비 (증빙)",won(p.major),"sub");
+    h+=row(op("−")+"기타경비 (기준경비율)",won(d.base),"sub",`${won(p.R)} × ${r[4]}%`);
+    h+=row(op("")+"기준경비율 소득금액",won(d.a),"sub");
+    h+=row(op("")+"배율 상한",won(d.cap),"sub",`단순경비율 소득금액 ${won(c.s.inc)} × ${d.mult}배`);
+  }
+  h+=row(op("=")+"종합소득금액",won(c.income),"sum",!c.simpleOK?"기준경비율 소득금액과 배율 상한 중 작은 금액":"");
+  h+=row(op("−")+"인적공제",won(c.personal),"sub",`기본 ${c.persons}명 × 150만`+(p.elder?` + 경로 ${p.elder}명`:"")+(p.dis?` + 장애인 ${p.dis}명`:""));
+  if(p.pension)h+=row(op("−")+"연금보험료공제",won(p.pension),"sub");
+  h+=row(op("=")+"과세표준",won(c.taxBase),"sum");
+  h+=row(op("×")+"세율",`${(c.rate*100).toFixed(0)}%`,"","누진공제 적용");
+  h+=row(op("=")+"산출세액",won(c.calcTax),"sum");
+  if(c.cc)h+=row(op("−")+"자녀세액공제",won(c.cc),"sub");
+  h+=row(op("−")+"표준세액공제",won(c.std),"sub");
+  if(c.penalty)h+=row(op("+")+c.penName,won(c.penalty),"sub");
+  h+=row(op("=")+"결정세액 (소득세)",won(c.nat),"sum");
+  h+=row(op("+")+"지방소득세 (10%)",won(c.local));
+  h+=row(op("−")+"기납부 원천징수세액",won(c.paid),"",`소득세 ${won(c.wNat)} + 지방소득세 ${won(c.wLocal)}`);
+  h+=row(op("=")+(refund?"환급받을 세액":"추가 납부할 세액"),won(Math.abs(c.diff)),"sum");
+  $("calc").innerHTML=h;
+
+  // 부양가족 수별 비교
+  let t="";
+  for(let d=0;d<=6;d++){
+    const x=calc(params({deps:d}));
+    const cur=d===p.deps?" cur":"";
+    t+=`<tr class="${cur.trim()}"><td>${d}명${cur?" (현재)":""}</td><td>${x.persons}명</td><td>${won(x.personal)}</td><td>${won(x.taxBase)}</td><td>${(x.rate*100).toFixed(0)}%</td><td>${won(x.total)}</td><td class="${x.diff<0?"neg":"pos"}">${x.diff<0?"−":"+"}${won(Math.abs(x.diff))}</td></tr>`;
+  }
+  $("cmp").innerHTML=t;
+  $("rt").querySelectorAll("tr").forEach(tr=>tr.classList.toggle("cur",tr.dataset.code===r[0]));
+}
+
+// 경비율표
+(function(){
+  let t="";
+  RATES.forEach(r=>{
+    const x=calc({rate:r,R:3e7,isNew:true,prev:0,major:0,spouse:false,deps:0,kids:0,elder:0,dis:0,pension:0});
+    t+=`<tr data-code="${r[0]}"><td>${r[0]}</td><td>${r[1]}</td><td>${r[2].toFixed(1)}%</td><td>${r[3].toFixed(1)}%</td><td>${r[4].toFixed(1)}%</td><td>${won(x.total)}</td></tr>`;
+  });
+  $("rt").innerHTML=t;
+})();
+run();
+</script>
+
+</body>
+</html>
